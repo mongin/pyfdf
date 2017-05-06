@@ -1,7 +1,7 @@
 {
     "screen_width": 900,
     "screen_height": 900,
-    "color_variation": 5,
+    "color_variation": 15,
     "colors": {
         "blue": [0, 41, 58],
         "sand": [243, 231, 169],

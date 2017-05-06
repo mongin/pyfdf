@@ -5,15 +5,9 @@ import json
 import random
 import argparse
 from copy import copy
+from collections import OrderedDict
 
-# We need a definition of the color class here for imorting them from the config file.
-class Colors:
-    """
-    Colors used in the program.
-    """
-    pass
-
-# Initialisation of the data used by the script.
+#_____ Initialisation of the data used by the script.
 
 arg_parser = argparse.ArgumentParser(description='Topographic visualisation of a map.')
 arg_parser.add_argument('-m', '--map', default='map.json', help='map file')
@@ -27,22 +21,26 @@ SCREEN_X = config_dct['screen_width']
 SCREEN_Y = config_dct['screen_height']
 COLOR_VAR = config_dct['color_variation']
 
-for color_name, color_value in config_dct['colors'].items():
-    setattr(Colors, color_name, color_value + [0])
+colors = {key: value + [0] for key, value in config_dct['colors'].items()}
+thresholds = sorted([(int(key), colors[value]) for key, value in config_dct['thresholds'].items()])
+COLOR_THRESHOLDS = OrderedDict(thresholds)
 
-COLOR_THRESHOLDS = {int(key): getattr(Colors, value) for key, value in config_dct['thresholds'].items()}
+del colors, thresholds, config_dct # let's not pollute our global namespace.
 
-# Body of the program where stuff happens.
+#_____ Body of the program where stuff happens.
 
 class Projection:
     """
-    Project a 3D coordinate on a 2D screen.
+    Class holding the projection function and its constants.
     """
     const = 0.5
     const2 = const / 2
 
     @classmethod
     def proj(cls, coos3D: tuple) -> tuple:
+        """
+        Projection function, turning 3D coordinates of a point to 2D.
+        """
         x = -(cls.const * coos3D[0] - cls.const * coos3D[1]) 
         y = -(coos3D[2] + cls.const2 * coos3D[0] + cls.const2 * coos3D[1])
         return (int(x + (SCREEN_X / 2)), int(y + (SCREEN_Y)))
@@ -66,22 +64,14 @@ class Map:
             return color
 
         level = sum(heights) / len(heights)
-            
-        color = None
-        last_key = None
-        for key in sorted(thresholds):
-            if level >= key:
-                color = thresholds[key]
-            last_key = key
-        if color is None:
-            color = thresholds[last_key]
-
+        selected_threshold = max([key for key in sorted(thresholds) if key <= level])
+        color = thresholds[selected_threshold]
         color = randomize_color(copy(color))
         return pygame.Color(*color)
 
-    def compute_polygons(self) -> None:
+    def get_polygons(self) -> None:
         """
-        Compute the polygons of the map, in the order in which they will be printed.
+        Define the polygons of the map, in the order in which they will be printed.
         """
         polygons = []
         for y in range(self.side - 2, -1, -1):
@@ -93,14 +83,16 @@ class Map:
                     self.projmap[y + 1][x + 1],
                     self.projmap[y][x + 1]
                 ]
+
+                # list of the z-axis values of the vertex of the polygon, for color computation.
                 pols_height = [
                     self.heightmap[y][x][2],
                     self.heightmap[y + 1][x][2],
                     self.heightmap[y + 1][x + 1][2],
                     self.heightmap[y][x + 1][2]
                 ]
-
                 color = self.choose_color(pols_height)
+
                 polygons.append({
                     'vertices': pols,
                     'color': color
@@ -121,20 +113,23 @@ class Map:
         for y in range(self.side):
             for x in range(self.side):
                 heightmap[y][x] = (x * self.step, y * self.step, heightmap[y][x])
+        # three dimensional coordinates of the vertex of the mesh to be rendered.
         self.heightmap = heightmap
-        
+
+        # two dimensional coordinates of the vertex projected on the screen.
         self.projmap = [list(range(self.side)) for i in range(self.side)]
         for y in range(self.side):
             for x in range(self.side):
                 self.projmap[y][x] = Projection.proj(self.heightmap[y][x])
 
-        self.polygons = self.compute_polygons()
+        self.polygons = self.get_polygons()
 
     def render_polygons(self, surface: pygame.Surface):
         for pol in self.polygons:
             pygame.draw.polygon(surface, pol['color'], pol['vertices'])
 
-# Execution loop.
+
+#_____ Execution loop.
             
 def main(map_file: str) -> None:
     random.seed()

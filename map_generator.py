@@ -88,8 +88,8 @@ def map_gen(size, res, alt_max, sea, interpolation_fn):
             
 def main(args):
     
-    side = args.side
-    step = args.step
+    side = int(args.side)
+    step = int(args.step)
     seed = args.seed
     smooth = args.smoothness
     sea = args.sea
