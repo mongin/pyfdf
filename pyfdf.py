@@ -128,7 +128,6 @@ class Map:
         for pol in self.polygons:
             pygame.draw.polygon(surface, pol['color'], pol['vertices'])
 
-
 #_____ Execution loop.
             
 def main(map_file: str) -> None:
