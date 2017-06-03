@@ -7,7 +7,9 @@ import argparse
 from copy import copy
 from collections import OrderedDict
 
-#_____ Initialisation of the data used by the script.
+
+# _____ Initialisation of the data used by the script.
+
 
 arg_parser = argparse.ArgumentParser(description='Topographic visualisation of a map.')
 arg_parser.add_argument('-m', '--map', default='map.json', help='map file')
@@ -25,25 +27,22 @@ colors = {key: value + [0] for key, value in config_dct['colors'].items()}
 thresholds = sorted([(int(key), colors[value]) for key, value in config_dct['thresholds'].items()])
 COLOR_THRESHOLDS = OrderedDict(thresholds)
 
-del colors, thresholds, config_dct # let's not pollute our global namespace.
+del colors, thresholds, config_dct  # let's not pollute our global namespace.
 
-#_____ Body of the program where stuff happens.
 
-class Projection:
+# _____ Body of the program where stuff happens.
+
+
+def projection(coos3D: tuple) -> tuple:
     """
-    Class holding the projection function and its constants.
+    Projection function, turning 3D coordinates of a point to 2D.
     """
     const = 0.5
     const2 = const / 2
+    x = -(const * coos3D[0] - const * coos3D[1])
+    y = -(coos3D[2] + const2 * coos3D[0] + const2 * coos3D[1])
+    return (int(x + (SCREEN_X / 2)), int(y + (SCREEN_Y)))
 
-    @classmethod
-    def proj(cls, coos3D: tuple) -> tuple:
-        """
-        Projection function, turning 3D coordinates of a point to 2D.
-        """
-        x = -(cls.const * coos3D[0] - cls.const * coos3D[1]) 
-        y = -(coos3D[2] + cls.const2 * coos3D[0] + cls.const2 * coos3D[1])
-        return (int(x + (SCREEN_X / 2)), int(y + (SCREEN_Y)))
 
 class Map:
     """
@@ -99,9 +98,7 @@ class Map:
                 })
         return polygons
 
-    
     def __init__(self, map_file: str) -> None:
-
         with open(map_file) as f:
             map_dct = json.load(f)
 
@@ -120,7 +117,7 @@ class Map:
         self.projmap = [list(range(self.side)) for i in range(self.side)]
         for y in range(self.side):
             for x in range(self.side):
-                self.projmap[y][x] = Projection.proj(self.heightmap[y][x])
+                self.projmap[y][x] = projection(self.heightmap[y][x])
 
         self.polygons = self.get_polygons()
 
@@ -128,8 +125,10 @@ class Map:
         for pol in self.polygons:
             pygame.draw.polygon(surface, pol['color'], pol['vertices'])
 
-#_____ Execution loop.
-            
+
+# _____ Execution loop.
+
+
 def main(map_file: str) -> None:
     random.seed()
     pygame.init()
@@ -138,13 +137,14 @@ def main(map_file: str) -> None:
 
     m = Map(map_file)
     m.render_polygons(screen)
-        
+
     done = False
     while not done:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
         pygame.display.flip()
+
 
 if __name__ == '__main__':
     main(args.map)

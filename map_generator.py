@@ -20,6 +20,7 @@ arg_parser.add_argument('-s', '--sea', default=100, help='sea level of the map')
 arg_parser.add_argument('-m', '--max', default=130, help='maximum of the map')
 args = arg_parser.parse_args()
 
+
 def treat_map(heightmap: list, side: int, sea: int, alt_max: int) -> list:
     flat_map = list(itertools.chain(*heightmap))
     m_max = max(flat_map)
@@ -35,9 +36,9 @@ def treat_map(heightmap: list, side: int, sea: int, alt_max: int) -> list:
         flat_map[i] = int(elem)
 
     return flat_map
-    
+
+
 def main(args):
-    
     side = int(args.side)
     step = int(args.step)
     seed = args.seed
@@ -60,6 +61,6 @@ def main(args):
     json_file = json.dumps(dict_file)
     print(json_file)
 
+
 if __name__ == '__main__':
     main(args)
-    
