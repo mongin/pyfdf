@@ -9,7 +9,7 @@ import random
 import argparse
 import itertools
 
-from noise import noise
+from noise import perlin_noise
 
 arg_parser = argparse.ArgumentParser(description='Generator of maps using perlin noise.')
 arg_parser.add_argument('-i', '--side', default=64, help='length of side of map')
@@ -21,14 +21,18 @@ arg_parser.add_argument('-m', '--max', default=130, help='maximum of the map')
 args = arg_parser.parse_args()
 
 
-def treat_map(heightmap: list, side: int, sea: int, alt_max: int) -> list:
+def treat_heightmap(heightmap: list, side: int, sea: int, alt_max: int) -> list:
+    """
+    Turn the raw output produced by the noise function into a list of values
+    compliant with the parameters for altitude, sea-level, etc.
+    """
     flat_map = list(itertools.chain(*heightmap))
     m_max = max(flat_map)
     m_min = min(flat_map)
 
     for i in range(len(flat_map)):
         elem = flat_map[i]
-        elem = (elem + (-m_min)) * (1. / (-(m_min) + m_max))
+        elem = (elem + (-m_min)) * (1. / ((-m_min) + m_max))
         elem = elem * (sea + alt_max)
         elem = elem - sea
         if elem < 0:
@@ -38,7 +42,11 @@ def treat_map(heightmap: list, side: int, sea: int, alt_max: int) -> list:
     return flat_map
 
 
-def main(args):
+def main(args) -> None:
+    """
+    main function.
+    """
+
     side = int(args.side)
     step = int(args.step)
     seed = args.seed
@@ -54,8 +62,8 @@ def main(args):
         'step': step
     }
 
-    heightmap = noise(side, smoothness)
-    heightmap = treat_map(heightmap, side, sea, alt_max)
+    heightmap = perlin_noise(side, smoothness)
+    heightmap = treat_heightmap(heightmap, side, sea, alt_max)
 
     dict_file['heightmap'] = heightmap
     json_file = json.dumps(dict_file)

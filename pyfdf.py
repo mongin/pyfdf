@@ -6,7 +6,8 @@ import random
 import argparse
 from copy import copy
 from collections import OrderedDict
-
+from sys import exit, stderr
+from os import EX_USAGE
 
 # _____ Initialisation of the data used by the script.
 
@@ -14,6 +15,7 @@ from collections import OrderedDict
 arg_parser = argparse.ArgumentParser(description='Topographic visualisation of a map.')
 arg_parser.add_argument('-m', '--map', default='map.json', help='map file')
 arg_parser.add_argument('-c', '--config', default='conf.json', help='config file')
+arg_parser.add_argument('-i', '--image', default=None, help='save buffer to image')
 args = arg_parser.parse_args()
 
 with open(args.config) as config_file:
@@ -113,7 +115,7 @@ class Map:
         # three dimensional coordinates of the vertex of the mesh to be rendered.
         self.heightmap = heightmap
 
-        # two dimensional coordinates of the vertex projected on the screen.
+        # two dimensional coordinates of the vertex projected on the image.
         self.projmap = [list(range(self.side)) for i in range(self.side)]
         for y in range(self.side):
             for x in range(self.side):
@@ -126,25 +128,33 @@ class Map:
             pygame.draw.polygon(surface, pol['color'], pol['vertices'])
 
 
-# _____ Execution loop.
+def main(map_file: str, image_file: str) -> None:
+    """
+    main function.
+    """
 
-
-def main(map_file: str) -> None:
     random.seed()
-    pygame.init()
-    pygame.display.set_caption('pyfdf')
-    screen = pygame.display.set_mode((SCREEN_X, SCREEN_Y))
-
     m = Map(map_file)
-    m.render_polygons(screen)
 
-    done = False
-    while not done:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                done = True
-        pygame.display.flip()
+    if image_file is None:  # render into a pygame window
+        pygame.init()
+        pygame.display.set_caption('pyfdf')
+        screen = pygame.display.set_mode((SCREEN_X, SCREEN_Y))
+        m.render_polygons(screen)
+        done = False
+        while not done:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    done = True
+            pygame.display.flip()
+    else:  # write image in a file
+        if image_file[-4:] not in ['.bmp', '.jpg', '.png']:
+            print('Wrong image format. Formats supported : bmp, jpg, png', file=stderr)
+            exit(EX_USAGE)
+        screen = pygame.Surface((SCREEN_X, SCREEN_Y))
+        m.render_polygons(screen)
+        pygame.image.save(screen, image_file)
 
 
 if __name__ == '__main__':
-    main(args.map)
+    main(args.map, args.image)
